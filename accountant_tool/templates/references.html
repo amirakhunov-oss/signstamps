@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="doc-head">
+  <div>
+    <h1>Эталоны подписей и печатей</h1>
+    <p class="muted">Загрузите скан или PDF с образцами, затем выделите нужную подпись или печать прямоугольником.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Добавить из разметки</h2>
+  {% if prefill.organization %}
+  <p class="muted">
+    Новый источник будет добавлен в группу:
+    {% if prefill.kind == "stamp" %}печать{% else %}подпись{% endif %},
+    {{ prefill.organization }}{% if prefill.person_name %} / {{ prefill.person_name }}{% endif %}.
+  </p>
+  {% endif %}
+  <form class="upload compact" method="post" action="/reference-sources" enctype="multipart/form-data">
+    <input type="hidden" name="kind" value="{{ prefill.kind }}">
+    <input type="hidden" name="organization" value="{{ prefill.organization }}">
+    <input type="hidden" name="person_name" value="{{ prefill.person_name }}">
+    <input type="file" name="file" accept="application/pdf,image/*" required>
+    <button type="submit">Открыть для разметки</button>
+  </form>
+</section>
+
+{% if sources %}
+<section>
+  <h2>Недавние листы для разметки</h2>
+  <div class="source-list">
+    {% for source in sources %}
+    <a href="/reference-sources/{{ source.id }}">{{ source.original_filename }}, стр. {{ source.page_number }}</a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section>
+  <h2>База эталонов</h2>
+  <div class="grid">
+    {% for ref in reference_groups %}
+    <article class="ref-card">
+      <a class="ref-card-link" href="{{ ref.url }}">
+        <img src="/files/{{ ref.image_path }}" alt="">
+        <b>{% if ref.kind == "stamp" %}Печать{% else %}Подпись{% endif %}</b>
+        <span>{{ ref.organization }}</span>
+        {% if ref.person_name %}<span>{{ ref.person_name }}</span>{% endif %}
+        <span class="muted">Эталонов: {{ ref.count }}</span>
+      </a>
+    </article>
+    {% else %}
+    <p class="muted">Эталонов пока нет.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

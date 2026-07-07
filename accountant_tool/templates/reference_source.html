@@ -1,0 +1,73 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<section class="doc-head">
+  <div>
+    <h1>{{ source.original_filename }}</h1>
+    <p class="muted">Страница {{ source.page_number }}. Выберите подпись или печать и сохраните как эталон.</p>
+  </div>
+  <div class="head-actions">
+    <a class="button-link" href="/references">К эталонам</a>
+  </div>
+</section>
+
+{% if siblings|length > 1 %}
+<nav class="page-tabs">
+  {% for sibling in siblings %}
+  <a class="{% if sibling.id == source.id %}active{% endif %}" href="/reference-sources/{{ sibling.id }}{% if prefill.query_string %}?{{ prefill.query_string }}{% endif %}">Стр. {{ sibling.page_number }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+<section class="page-layout reference-layout">
+  <div class="viewer-column">
+    <div class="viewer-controls">
+      <button type="button" class="secondary rotate-page" title="Повернуть влево" data-page-id="{{ source.id }}" data-rotate="-90">↶</button>
+      <button type="button" class="secondary rotate-page" title="Повернуть вправо" data-page-id="{{ source.id }}" data-rotate="90">↷</button>
+      <button type="button" class="secondary zoom-page" title="Уменьшить" data-page-id="{{ source.id }}" data-zoom="0.85">−</button>
+      <span class="viewer-zoom-value" data-page-id="{{ source.id }}">100%</span>
+      <button type="button" class="secondary zoom-page" title="Увеличить" data-page-id="{{ source.id }}" data-zoom="1.18">+</button>
+      <button type="button" class="secondary zoom-page fit" title="По размеру окна" data-page-id="{{ source.id }}" data-zoom="fit">⛶</button>
+    </div>
+    <div class="page-image-wrap" data-page-id="{{ source.id }}" data-width="{{ source.width }}" data-height="{{ source.height }}">
+      <div class="page-image-content">
+        <img class="page-image" src="/files/{{ source.image_path }}" width="{{ source.width }}" height="{{ source.height }}">
+        <div class="draw-layer"></div>
+      </div>
+    </div>
+  </div>
+  <aside class="side">
+    <div class="tool-panel">
+      <h3>Новый эталон</h3>
+      {% if error %}
+      <div class="form-error">{{ error }}</div>
+      {% endif %}
+      <form class="manual annotator-form" method="post" action="/reference-sources/{{ source.id }}/references" data-page-id="{{ source.id }}">
+        <select name="kind" data-reference-kind>
+          <option value="signature" {% if prefill.kind != "stamp" %}selected{% endif %}>Подпись</option>
+          <option value="stamp" {% if prefill.kind == "stamp" %}selected{% endif %}>Печать</option>
+        </select>
+        <div class="suggest-field">
+          <input name="organization" placeholder="Организация" value="{{ prefill.organization }}" required data-reference-suggest="organizations" data-suggestions='{{ reference_options.organizations|tojson }}' autocomplete="off">
+        </div>
+        <div class="suggest-field" data-person-field>
+          <input name="person_name" placeholder="ФИО для подписи" value="{{ prefill.person_name }}" data-reference-suggest="signers" data-suggestions='{{ reference_options.signers|tojson }}' autocomplete="off">
+        </div>
+        <div class="field-row">
+          <button type="button" class="secondary start-draw">Выделить</button>
+        </div>
+        <input name="x1" type="hidden" required>
+        <input name="y1" type="hidden" required>
+        <input name="x2" type="hidden" required>
+        <input name="y2" type="hidden" required>
+        <input name="polygon_json" type="hidden">
+        <div class="coords-preview muted">Область не выбрана</div>
+        <button type="submit">Сохранить эталон и продолжить</button>
+      </form>
+    </div>
+  </aside>
+</section>
+<script src="/static/image_viewer.js?v=polygon6"></script>
+<script src="/static/annotator.js?v=polygon6"></script>
+<script src="/static/reference_suggest.js"></script>
+<script src="/static/reference_form.js"></script>
+{% endblock %}

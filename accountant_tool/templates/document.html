@@ -1,0 +1,140 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<section class="doc-head">
+  <div>
+    <h1>{{ doc.original_filename }}</h1>
+    <p><span class="status {{ doc.status }}" data-doc-status>{{ doc.status }}</span> <span data-status-reason>{{ doc.status_reason }}</span></p>
+    <p class="muted">Ожидания: печати {{ doc.expected.organizations|join(", ") or "не заданы" }}; подписи {{ doc.expected.signers|join(", ") or "не заданы" }}</p>
+  </div>
+  <form method="post" action="/documents/{{ doc.id }}/approve">
+    <button type="submit">Подтвердить вручную</button>
+  </form>
+</section>
+
+<section class="expected-section">
+  <h2>Ожидается в документе</h2>
+  <form method="post" action="/documents/{{ doc.id }}/expected" class="expected-save-form">
+    <div class="expected-editor" data-organizations='{{ doc.expected.organizations|tojson }}' data-signers='{{ doc.expected.signers|tojson }}'>
+      <input type="hidden" name="expected_json" value='{{ doc.expected|tojson }}'>
+      <datalist class="organization-options">
+        {% for organization in expected_options.organizations %}
+        <option value="{{ organization }}">
+        {% endfor %}
+      </datalist>
+      <datalist class="signer-options">
+        {% for signer in expected_options.signers %}
+        <option value="{{ signer }}">
+        {% endfor %}
+      </datalist>
+      <div class="expected-columns">
+        <div>
+          <h3>Печати организаций</h3>
+          <div class="expected-list" data-kind="organizations"></div>
+          <button type="button" class="secondary add-expected" data-kind="organizations">+ Печать организации</button>
+        </div>
+        <div>
+          <h3>Подписи людей</h3>
+          <div class="expected-list" data-kind="signers"></div>
+          <button type="button" class="secondary add-expected" data-kind="signers">+ Подпись человека</button>
+        </div>
+      </div>
+    </div>
+    <button type="submit">Сохранить ожидания и пересчитать</button>
+  </form>
+</section>
+
+{% for page in pages %}
+<section class="page-panel">
+  <div class="page-title">
+    <h2>Страница {{ page.page_number }}</h2>
+    <span class="status {{ page.summary.status }}">{{ page.summary.status }}</span>
+    <span class="summary">
+      Подписей: {{ page.summary.signatures_found or 0 }},
+      печатей: {{ page.summary.stamps_found or 0 }},
+      совпало: {{ page.summary.matched or 0 }},
+      не совпало: {{ page.summary.unmatched or 0 }}
+    </span>
+  </div>
+  <div class="page-layout">
+    <div class="viewer-column">
+      <div class="viewer-controls">
+        <button type="button" class="secondary rotate-page" title="Повернуть влево" data-page-id="{{ page.id }}" data-rotate="-90">↶</button>
+        <button type="button" class="secondary rotate-page" title="Повернуть вправо" data-page-id="{{ page.id }}" data-rotate="90">↷</button>
+        <button type="button" class="secondary zoom-page" title="Уменьшить" data-page-id="{{ page.id }}" data-zoom="0.85">−</button>
+        <span class="viewer-zoom-value" data-page-id="{{ page.id }}">100%</span>
+        <button type="button" class="secondary zoom-page" title="Увеличить" data-page-id="{{ page.id }}" data-zoom="1.18">+</button>
+        <button type="button" class="secondary zoom-page fit" title="По размеру окна" data-page-id="{{ page.id }}" data-zoom="fit">⛶</button>
+      </div>
+      <div class="page-image-wrap" data-page-id="{{ page.id }}" data-width="{{ page.width }}" data-height="{{ page.height }}">
+        <div class="page-image-content">
+          <img class="page-image" src="/files/{{ page.image_path }}" width="{{ page.width }}" height="{{ page.height }}">
+          <div class="draw-layer"></div>
+          {% for det in page.detections %}
+          <div class="box {{ det.status }}" style="left:{{ det.x1 / page.width * 100 }}%;top:{{ det.y1 / page.height * 100 }}%;width:{{ (det.x2-det.x1) / page.width * 100 }}%;height:{{ (det.y2-det.y1) / page.height * 100 }}%;">
+            <span>{{ det.kind }} {{ "%.2f"|format(det.confidence) }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <aside class="side">
+      <div class="tool-panel">
+        <h3>Разметка</h3>
+        <form class="manual annotator-form" method="post" action="/pages/{{ page.id }}/manual-detection" data-page-id="{{ page.id }}">
+          <div class="field-row">
+            <select name="kind"><option value="signature">Подпись</option><option value="stamp">Печать</option></select>
+            <button type="button" class="secondary start-draw">Выделить</button>
+          </div>
+          <input name="x1" type="hidden" required>
+          <input name="y1" type="hidden" required>
+          <input name="x2" type="hidden" required>
+          <input name="y2" type="hidden" required>
+          <input name="polygon_json" type="hidden">
+          <select name="reference_id">
+            <option value="">Без эталона</option>
+            {% for ref in refs %}
+            <option value="{{ ref.id }}">{{ ref.kind }}: {{ ref.organization }}{% if ref.person_name %} / {{ ref.person_name }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          <div class="coords-preview muted">Область не выбрана</div>
+          <button type="submit">Добавить область</button>
+        </form>
+      </div>
+
+      <div class="tool-panel">
+        <h3>Объекты</h3>
+        {% for det in page.detections %}
+        <article class="detection">
+          <img src="/files/{{ det.crop_path }}" alt="">
+          <div class="detection-body">
+            <div class="object-head">
+              <b>{{ det.kind }}</b>
+              <span class="status {{ det.status }}">{{ det.status }}</span>
+            </div>
+            <p>YOLO {{ "%.2f"|format(det.confidence) }}{% if det.match_score is not none %}, similarity {{ "%.2f"|format(det.match_score) }}{% endif %}</p>
+            <form method="post" action="/detections/{{ det.id }}/assign" class="assign-form">
+              <select name="reference_id" required>
+                <option value="">Сопоставить с эталоном</option>
+                {% for ref in refs if ref.kind == det.kind %}
+                <option value="{{ ref.id }}">{{ ref.organization }}{% if ref.person_name %} / {{ ref.person_name }}{% endif %}</option>
+                {% endfor %}
+              </select>
+              <button type="submit">Сохранить</button>
+            </form>
+          </div>
+        </article>
+        {% else %}
+        <p class="muted">На странице пока нет объектов.</p>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+</section>
+{% else %}
+<section class="page-panel" data-processing-placeholder data-document-id="{{ doc.id }}"><p>Документ обрабатывается. Результаты появятся автоматически.</p></section>
+{% endfor %}
+<script src="/static/image_viewer.js?v=polygon6"></script>
+<script src="/static/annotator.js?v=polygon6"></script>
+<script src="/static/expected_editor.js"></script>
+<script src="/static/status_poll.js" data-mode="document" data-document-id="{{ doc.id }}" data-initial-status="{{ doc.status }}" data-page-count="{{ pages|length }}"></script>
+{% endblock %}

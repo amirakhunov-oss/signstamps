@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments and local tooling
+.venv/
+.venv-*/
+venv/
+env/
+
+# Runtime storage
+accountant_tool/storage/
+accountant_tool/active_learning/
+accountant_tool/signstamp.sqlite3
+
+# Large ML/data artifacts
+datasets/
+cvat_import/
+exports/
+runs_download/
+backup_metadata/
+*.pt
+*.onnx
+*.engine
+*.tar
+*.tar.gz
+*.tar.zst
+*.zip
+*.7z
+
+# Source scans / client documents
+Сканы пробник/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

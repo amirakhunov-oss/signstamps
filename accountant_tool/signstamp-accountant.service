@@ -1,0 +1,16 @@
+[Unit]
+Description=SignStamp accountant document checker
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/signstamp-accountant
+Environment=SIGNSTAMP_YOLO_MODEL=/opt/signstamp-accountant/models/best.pt
+Environment=NO_PROXY=*
+Environment=no_proxy=*
+ExecStart=/opt/signstamp-accountant/.venv/bin/python -m uvicorn accountant_tool.app:app --host 127.0.0.1 --port 8011
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

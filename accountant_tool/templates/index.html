@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="doc-head">
+  <h1>Документы за дату</h1>
+  <form class="toolbar" method="get" action="/">
+    <input type="date" name="day" value="{{ day }}">
+    <button type="submit">Показать</button>
+  </form>
+</section>
+
+<section>
+  <h2>Загрузить PDF</h2>
+  <form class="upload batch-upload" method="post" action="/documents" enctype="multipart/form-data" data-batch-upload data-organizations='{{ expected_options.organizations|tojson }}' data-signers='{{ expected_options.signers|tojson }}'>
+    <input type="file" name="files" accept="application/pdf" multiple required data-pdf-files>
+    <input type="hidden" name="expected_jsons" value="[]" data-expected-jsons>
+    <div class="batch-files" data-batch-files></div>
+    <button type="submit">Загрузить и проверить</button>
+  </form>
+</section>
+
+<section>
+  <h2>Список</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Страницы</th>
+        <th>Файл</th>
+        <th>Причина</th>
+        <th>Загружен</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doc in docs %}
+      <tr class="document-row status-row {{ doc.status }}" data-document-row="{{ doc.id }}" data-doc-status="{{ doc.status }}">
+        <td>
+          <div class="page-chips" data-page-chips>
+            {% for page in doc.pages %}
+            <span class="page-chip {{ page.status }}">{{ page.number }}</span>
+            {% else %}
+            <span class="muted">нет страниц</span>
+            {% endfor %}
+          </div>
+        </td>
+        <td><a href="/documents/{{ doc.id }}">{{ doc.original_filename }}</a></td>
+        <td><span data-status-reason>{{ doc.status_reason }}</span>{% if doc.manual_approved %}<span class="badge">ручная проверка</span>{% endif %}</td>
+        <td>{{ doc.created_at }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">За эту дату документов нет.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+<script src="/static/expected_editor.js"></script>
+<script src="/static/batch_upload.js"></script>
+<script src="/static/status_poll.js" data-mode="list" data-day="{{ day }}"></script>
+{% endblock %}

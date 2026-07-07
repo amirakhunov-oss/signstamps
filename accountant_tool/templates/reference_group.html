@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="doc-head">
+  <div>
+    <h1>{% if group.kind == "stamp" %}Печати{% else %}Подписи{% endif %}</h1>
+    <p class="muted">
+      {{ group.organization }}
+      {% if group.person_name %} / {{ group.person_name }}{% endif %}
+      · эталонов: {{ group.count }}
+    </p>
+  </div>
+  <div class="head-actions">
+    <a class="button-link secondary" href="/references">К базе эталонов</a>
+    <a class="button-link" href="{{ group.add_url }}">Добавить эталон</a>
+  </div>
+</section>
+
+<section>
+  <div class="grid">
+    {% for ref in refs %}
+    <article class="ref-card reference-detail-card">
+      <img src="/files/{{ ref.image_path }}" alt="">
+      <span class="muted">Добавлен: {{ ref.created_at }}</span>
+      <form method="post" action="/references/{{ ref.id }}/delete" onsubmit="return confirm('Удалить этот эталон?')">
+        <button type="submit" class="danger">Удалить</button>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
